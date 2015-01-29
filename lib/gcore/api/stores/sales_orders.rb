@@ -20,17 +20,39 @@ module Gcore
            end           
         end
         
-        def self.list(params = {})
+        def self.list(params)
           store_code = params[:store_id] || params[:store_code]
           allowed_params = [:limit, :page]
           url_params = params.select{|key, value| allowed_params.include? key} || {}           
           url = "#{Gcore::Api.endpoint}/stores/#{store_code}/sales_orders"
           JSON.parse(RestClient.get(url, Gcore::Api.header.merge(params: url_params)), {symbolize_names: true})                
         end
-        
+
+        def self.list_all(params = {})
+
+          return_value = []
+          params[:page] = 1
+          store_code = params[:store_id] || params[:store_code]
+          allowed_params = [:limit, :page, :only]
+          url = "#{Gcore::Api.endpoint}/stores/#{store_code}/sales_orders"
+          loop do
+            url_params = params.select{|key, value| allowed_params.include? key} || {}
+            $stderr.puts params[:page]
+            orders = JSON.parse(RestClient.get(url, Gcore::Api.header.merge(params: url_params)), {symbolize_names: true})
+
+            break if orders.length == 0
+
+            return_value.concat(orders)
+
+            params[:page] += 1
+          end
+
+          return return_value
+        end
+
         def self.sku_count(params = {})
           store_code = params[:store_id] || params[:store_code]
-          
+
           #Allow web unsafe SKU's
           sku = Base64.urlsafe_encode64(params[:sku])
           
